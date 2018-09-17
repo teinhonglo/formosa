@@ -4,7 +4,8 @@
 # Apache 2.0
 
 set -euo pipefail
-
+data_root=data/online
+dataset=eval0
 corpus=$1
 
 . ./cmd.sh
@@ -21,14 +22,14 @@ fi
 echo "Preparing train and test data"
 
 # have to remvoe previous files to avoid filtering speakers according to cmvn.scp and feats.scp
-rm -rf   data/online/eval0
-mkdir -p data/online/eval0
+rm -rf   $data_root/$dataset
+mkdir -p $data_root/$dataset
 
 #
 # make utt2spk, wav.scp and text
 #
 
-cur_data_root=data/online/eval0
+cur_data_root=$data_root/$dataset
 touch $cur_data_root/utt2spk
 touch $cur_data_root/wav.scp
 find $corpus -name *.wav -exec sh -c 'x={}; y=${x%.wav}; printf "%s %s\n"     $y $y' \; | dos2unix > $cur_data_root/utt2spk

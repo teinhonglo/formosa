@@ -10,12 +10,14 @@ set -euo pipefail
 # iVector-related parts of the script.  See those scripts for examples
 # of usage.
 
-stage=0
+stage=-1
 test_set=test
 
 nj=20
 
 nnet3_affix=
+data_dir=/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Eval
+data_root=data/online
 
 . ./cmd.sh
 . ./path.sh
@@ -24,30 +26,48 @@ nnet3_affix=
 test_set=$1
 dir=$2
 
+rm local/score.sh
+ln -s score_online.sh local/score.sh
  
+if [ $stage -le -1 ]; then
+  # Data Preparation
+  echo "$0: Data Preparation"
+  local/prepare_data_online.sh $data_dir --data-root $data_root --dataset $test_set || exit 1;
+fi
+
 if [ $stage -le 1 ]; then
   # Create high-resolution MFCC features (with 40 cepstra instead of 13).
   # this shows how you can split across multiple file-systems.
-  utils/data/copy_data_dir.sh data/${test_set} data/${test_set}_hires
-  steps/make_mfcc_pitch.sh --nj $nj --mfcc-config conf/mfcc_hires.conf \
-      --cmd "$train_cmd" data/${test_set}_hires || exit 1;
-  steps/compute_cmvn_stats.sh data/${test_set}_hires || exit 1;
-  utils/fix_data_dir.sh data/${test_set}_hires || exit 1;
+  utils/data/copy_data_dir.sh $data_root/${test_set} $data_root/${test_set}_hires
+  steps/make_mfcc_pitch.sh --nj $nj --mfcc-config conf/mfcc_hires.conf --pitch-config conf/pitch.conf \
+      --cmd "$train_cmd" $data_root/${test_set}_hires || exit 1;
+  steps/compute_cmvn_stats.sh $data_root/${test_set}_hires || exit 1;
+  utils/fix_data_dir.sh $data_root/${test_set}_hires || exit 1;
   # create MFCC data dir without pitch to extract iVector
-  utils/data/limit_feature_dim.sh 0:39 data/${test_set}_hires data/${test_set}_hires_nopitch || exit 1;
-  steps/compute_cmvn_stats.sh data/${test_set}_hires_nopitch || exit 1;
+  utils/data/limit_feature_dim.sh 0:39 $data_root/${test_set}_hires $data_root/${test_set}_hires_nopitch || exit 1;
+  steps/compute_cmvn_stats.sh $data_root/${test_set}_hires_nopitch || exit 1;
 fi
 
 if [ $stage -le 2 ]; then
-  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj 8 \
-    data/${test_set}_hires_nopitch exp/nnet3/extractor \
+  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj $nj \
+    $data_root/${test_set}_hires_nopitch exp/nnet3/extractor \
     exp/nnet3/ivectors_${test_set}
 fi
 
-
 if [ $stage -le 3 ]; then
-  steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
-      --nj 10 --cmd "$decode_cmd" \
-      --online-ivector-dir exp/nnet3/ivectors_$test_set \
-      $graph_dir data/${test_set}_hires $dir/decode_${test_set} || exit 1;
+  utils/mkgraph.sh --self-loop-scale 1.0 data/lang_test $dir $dir/graph
 fi
+
+if [ $stage -le 4 ]; then
+  steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
+      --nj $nj --cmd "$decode_cmd" \
+      --online-ivector-dir exp/nnet3/ivectors_$test_set \
+      $dir/graph $data_root/${test_set}_hires $dir/decode_${test_set} || exit 1;
+fi
+
+
+rm local/score.sh
+ln -s score_real.sh local/score.sh
+
+echo "$0 Done."
+exit 0;

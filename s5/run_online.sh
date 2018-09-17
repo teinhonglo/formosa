@@ -44,6 +44,19 @@ if [ $stage -le -1 ]; then
   utils/fix_data_dir.sh $data_root/$data_dir || exit 1;
 fi
 
+
+if [ $stage -le 0 ]; then
+  echo "$0 Extract i-vector" 
+  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj 8 \
+    data/${data}_hires_nopitch exp/nnet3${nnet3_affix}/extractor \
+      exp/nnet3${nnet3_affix}/ivectors_${data}
+fi
+
+if [ $stage -le 1 ]; then
+  echo "$0 Decode."
+fi
+
+<<WORD
 # mono
 if [ $stage -le 0 ]; then
 
@@ -109,7 +122,7 @@ if [ $stage -le 5 ]; then
   )
 
 fi
-
+WORD
 echo "$0: all done"
 
 exit 0;
