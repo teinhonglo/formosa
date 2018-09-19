@@ -3,15 +3,17 @@
 # This script is based on run_tdnn_7h.sh in swbd chain recipe.
 
 set -e
+exp_root=exp
+nnet3_affix=aug
 
 # configs for 'chain'
-affix=
+affix=_aug
 stage=0
 train_stage=-10
 get_egs_stage=-10
 dir=exp/chain/tdnn_1a_sp_cleaned  # Note: _sp will get added to this
 decode_iter=
-
+gmm=tri6a
 # training options
 num_epochs=4
 initial_effective_lrate=0.001
@@ -46,12 +48,14 @@ fi
 # nnet3 setup, and you can skip them by setting "--stage 8" if you have already
 # run those things.
 dir=$dir${affix}
-train_set=train_vol1_2_cleaned_sp
-ali_dir=exp/tri6a_cleaned_sp_ali
-treedir=exp/chain/tri6_7d_tree_sp
-lat_dir=exp/tri5a_cleaned_sp_lats
+train_set=data/train_vol1_2_cleaned_sp_hires
+lores_train_set=data/train_vol1_2_cleaned_sp
+online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivector_${train_set}
+ali_dir=$exp_root/${gmm}_cleaned_sp_ali
+treedir=$exp_root/chain/${gmm}_7d_tree_sp
+lat_dir=$exp_root/${gmm}_cleaned_sp_lats
 lang=data/lang_chain
-gmm_dir=exp/tri6a_cleaned
+gmm_dir=$exp_root/${gmm}_cleaned
 
 
 # if we are using the speed-perturbed data we need to generate
@@ -59,13 +63,14 @@ gmm_dir=exp/tri6a_cleaned
 local/nnet3/run_ivector_common.sh --stage $stage \
                                   --nj $nj \
                                   --train-set train_vol1_2_cleaned \
-                                  --gmm tri6a_cleaned || exit 1;
+                                  --gmm $gmm_dir
+                                  --nnet3-aifx $nnet3_affix || exit 1;
 
 if [ $stage -le 7 ]; then
   # Get the alignments as lattices (gives the LF-MMI training more freedom).
   # use the same num-jobs as the alignments
   nj=$(cat $ali_dir/num_jobs) || exit 1;
-  steps/align_fmllr_lats.sh --nj $nj --cmd "$train_cmd" data/$train_set \
+  steps/align_fmllr_lats.sh --nj $nj --cmd "$train_cmd" $lores_train_set \
     data/lang $gmm_dir $lat_dir
   rm $lat_dir/fsts.*.gz # save space
 fi
@@ -88,7 +93,7 @@ if [ $stage -le 9 ]; then
   # step compared with other recipes.
   steps/nnet3/chain/build_tree.sh --frame-subsampling-factor 3 \
       --context-opts "--context-width=2 --central-position=1" \
-      --cmd "$train_cmd" 5000 data/$train_set $lang $ali_dir $treedir
+      --cmd "$train_cmd" 5000 $lores_train_set $lang $ali_dir $treedir
 fi
 
 if [ $stage -le 10 ]; then
@@ -143,7 +148,7 @@ if [ $stage -le 11 ]; then
 
   steps/nnet3/chain/train.py --stage $train_stage \
     --cmd "$cuda_cmd" \
-    --feat.online-ivector-dir exp/nnet3/ivectors_${train_set} \
+    --feat.online-ivector-dir $online_ivector_dir \
     --feat.cmvn-opts "--norm-means=false --norm-vars=false" \
     --chain.xent-regularize $xent_regularize \
     --chain.leaky-hmm-coefficient 0.1 \
@@ -163,25 +168,28 @@ if [ $stage -le 11 ]; then
     --trainer.optimization.final-effective-lrate $final_effective_lrate \
     --trainer.max-param-change $max_param_change \
     --cleanup.remove-egs $remove_egs \
-    --feat-dir data/${train_set}_hires \
+    --feat-dir $train_set \
     --tree-dir $treedir \
     --lat-dir $lat_dir \
     --dir $dir  || exit 1;
 fi
 
+graph_affix=_12
+graph_dir=$dir/graph$graph
+
 if [ $stage -le 12 ]; then
   # Note: it might appear that this $lang directory is mismatched, and it is as
   # far as the 'topo' is concerned, but this script doesn't read the 'topo' from
   # the lang directory.
-  utils/mkgraph.sh --self-loop-scale 1.0 data/lang_test $dir $dir/graph
+  utils/mkgraph.sh --self-loop-scale 1.0 data/lang${graph_affix}_test $dir $graph_dir
 fi
 
-graph_dir=$dir/graph
+
 if [ $stage -le 13 ]; then
   for test_set in test; do
     steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
       --nj 10 --cmd "$decode_cmd" \
-      --online-ivector-dir exp/nnet3/ivectors_$test_set \
+      --online-ivector-dir $exp_root/nnet3${nnet3_affix}/ivectors_$test_set \
       $graph_dir data/${test_set}_hires $dir/decode_${test_set} || exit 1;
   done
 fi
