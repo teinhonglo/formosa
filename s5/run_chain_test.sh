@@ -16,8 +16,11 @@ test_set=test
 nj=20
 
 nnet3_affix=
+graph_affix=12
 data_dir=/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Eval
 data_root=data/online
+online_scoring=true
+use_text=false
 
 . ./cmd.sh
 . ./path.sh
@@ -26,13 +29,13 @@ data_root=data/online
 test_set=$1
 dir=$2
 
-rm local/score.sh
-ln -s score_online.sh local/score.sh
+#rm local/score.sh
+#ln -s score_online.sh local/score.sh
  
 if [ $stage -le -1 ]; then
   # Data Preparation
   echo "$0: Data Preparation"
-  local/prepare_data_online.sh $data_dir --data-root $data_root --dataset $test_set || exit 1;
+  local/prepare_data_online.sh --data-root $data_root --dataset $test_set --use-text $use_text $data_dir || exit 1;
 fi
 
 if [ $stage -le 1 ]; then
@@ -55,19 +58,27 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-  utils/mkgraph.sh --self-loop-scale 1.0 data/lang_test $dir $dir/graph
+  utils/mkgraph.sh --self-loop-scale 1.0 data/lang_12_test $dir $dir/graph_$graph_affix
 fi
 
 if [ $stage -le 4 ]; then
   steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
-      --nj $nj --cmd "$decode_cmd" \
+      --nj $nj --cmd "$decode_cmd" --skip-scoring $online_scoring \
       --online-ivector-dir exp/nnet3/ivectors_$test_set \
-      $dir/graph $data_root/${test_set}_hires $dir/decode_${test_set} || exit 1;
+      $dir/graph_$graph_affix $data_root/${test_set}_hires $dir/decode_${graph_affix}_${test_set} || exit 1;
+  
+  if $online_scoring; then
+    [ ! -x local/score_online.sh ] && \
+      echo "Not scoring because local/score.sh does not exist or not executable." && exit 1;
+    echo "score best paths"
+    local/score_online.sh --cmd "$cmd" $data_root/${test_set} $graphdir $dir/decode_${graph_affix}_${test_set}
+    echo "score confidence and timing with sclite"
+  fi
 fi
 
 
-rm local/score.sh
-ln -s score_real.sh local/score.sh
+#rm local/score.sh
+#ln -s score_real.sh local/score.sh
 
-echo "$0 Done."
+echo "$0 Online decoding is Done."
 exit 0;
