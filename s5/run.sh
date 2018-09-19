@@ -192,14 +192,14 @@ if [ $stage -le 6 ]; then
   # Data Preparation
   echo "$0: Data Preparation (NER-Trs-Vol2)"
   rdata_root=`dirname $data_dir`
-  #local/prepare_data_augmentation.sh $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
+  local/prepare_data_augmentation.sh $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
  
-  #local/train_lms.sh --text data/local/train/text_vol1_2 --dir data/local/lm_vol1_2 || exit 1;
+  local/train_lms_aug.sh --text data/local/train/text_vol1_2 --dir data/local/lm_vol1_2 || exit 1;
 
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
-  #utils/format_lm.sh data/lang data/local/lm_vol1_2/3gram-mincount/lm_unpruned.gz \
-  #    data/local/dict/lexicon.txt data/lang_12_test || exit 1;
+  utils/format_lm.sh data/lang data/local/lm_vol1_2/3gram-mincount/lm_unpruned.gz \
+      data/local/dict/lexicon.txt data/lang_12_test || exit 1;
 
   steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $num_jobs data/train_vol2 
   steps/compute_cmvn_stats.sh data/train_vol2
@@ -208,8 +208,7 @@ if [ $stage -le 6 ]; then
   # combine all the data
   utils/combine_data.sh \
    data/train_vol1_2 data/train data/train_vol2
-
-  utils/validate_data_dir.sh --no-feats --no-text data/train_vol1_2
+  
   utils/fix_data_dir.sh data/train_vol1_2
 
   steps/align_fmllr.sh --nj $num_jobs --cmd "$train_cmd" \
@@ -254,3 +253,4 @@ fi
 echo "$0: all done"
 
 exit 0;
+
