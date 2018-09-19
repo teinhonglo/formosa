@@ -231,7 +231,7 @@ if [ $stage -le 7 ]; then
 fi
 
 if [ $stage -le 8 ]; then
-  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 0 --data data/train_vol1_2 --srcdir exp/tri6a
+  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 3 --data data/train_vol1_2 --srcdir exp/tri6a
 fi
 
 # chain model

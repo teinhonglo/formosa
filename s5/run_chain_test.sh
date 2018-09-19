@@ -26,12 +26,20 @@ use_text=false
 . ./path.sh
 . utils/parse_options.sh
 
-test_set=$1
-dir=$2
-
+#run_chain_test.sh --stage -1 --data-root data/online --use-text true --online-scoring false eval0 exp/chain/tdnn_1a_sp_cleaned_sp
 #rm local/score.sh
 #ln -s score_online.sh local/score.sh
  
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 [options] <data-dir> <model-dir>"
+  echo "e.g.:   $0 --stage -1 --data-root data/online --use-text true --online-scoring false \\"
+  echo "           eval0 exp/chain/tdnn_1a_sp_cleaned_sp \\"
+  exit 1;
+fi
+
+test_set=$1
+dir=$2
+
 if [ $stage -le -1 ]; then
   # Data Preparation
   echo "$0: Data Preparation"
