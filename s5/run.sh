@@ -194,11 +194,11 @@ if [ $stage -le 6 ]; then
   rdata_root=`dirname $data_dir`
   #local/prepare_data_augmentation.sh $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
  
-  #local/train_lms.sh || exit 1;
+  #local/train_lms.sh --text data/local/train/text_vol1_2 --dir data/local/lm_vol1_2 || exit 1;
 
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
-  #utils/format_lm.sh data/lang data/local/lm/3gram-mincount/lm_unpruned.gz \
+  #utils/format_lm.sh data/lang data/local/lm_vol1_2/3gram-mincount/lm_unpruned.gz \
   #    data/local/dict/lexicon.txt data/lang_12_test || exit 1;
 
   steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $num_jobs data/train_vol2 
@@ -219,20 +219,20 @@ fi
 
 if [ $stage -le 7 ]; then
 
-  #steps/train_sat.sh --cmd "$train_cmd" \
-  #  3500 100000 data/train_vol1_2 data/lang exp/tri5b_ali exp/tri6a || exit 1;
+  steps/train_sat.sh --cmd "$train_cmd" \
+    3500 100000 data/train_vol1_2 data/lang exp/tri5b_ali exp/tri6a || exit 1;
   
-  #steps/align_fmllr.sh --cmd "$train_cmd" --nj $num_jobs \
-  #  data/train_vol1_2 data/lang exp/tri6a exp/tri6a_ali || exit 1;
+  steps/align_fmllr.sh --cmd "$train_cmd" --nj $num_jobs \
+    data/train_vol1_2 data/lang exp/tri6a exp/tri6a_ali || exit 1;
  
-  utils/mkgraph.sh data/lang_test exp/tri6a exp/tri6a/graph || exit 1; 
+  utils/mkgraph.sh data/lang_12_test exp/tri6a exp/tri6a/graph_12 || exit 1; 
   # decode tri5
-  steps/decode_fmllr.sh --cmd "$decode_cmd --num-threads 5" --num-threads 6 --nj $num_jobs --config conf/decode.config \
-       exp/tri6a/graph_12 data/test exp/tri6a/decode_test || exit 1;
+  steps/decode_fmllr.sh --stage 1 --cmd "$decode_cmd --num-threads 5" --num-threads 6 --nj $num_jobs --config conf/decode.config \
+       exp/tri6a/graph_12 data/test exp/tri6a/decode_test_12 || exit 1;
 fi
 
 if [ $stage -le 8 ]; then
-  local/run_cleanup_segmentation.sh --nj $num_jobs --data data/train_vol1_2 --srcdir exp/tri6a
+  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 0 --data data/train_vol1_2 --srcdir exp/tri6a
 fi
 
 # chain model
