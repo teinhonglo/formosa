@@ -5,11 +5,13 @@
 
 set -euo pipefail
 
+skip_lm=false
+
+[ -f ./path.sh ] && . ./path.sh
+. parse_options.sh || exit 1;
+
 corpus=$1
 dataset=$2
-
-. ./cmd.sh
-. ./utils/parse_options.sh
 
 if [ -z "$corpus" ] ; then
     echo >&2 "The script $0 expects one parameter -- the location of the LibriSpeech corpus"
@@ -19,7 +21,7 @@ if [ ! -d "$corpus" ] ; then
     echo >&2 "The directory $corpus does not exist"
 fi
 
-echo "Preparing train and test data"
+echo "Preparing augumentation train set"
 
 # have to remvoe previous files to avoid filtering speakers according to cmvn.scp and feats.scp
 rm -rf    data/$dataset
@@ -43,8 +45,11 @@ for x in $dataset; do
     utils/fix_data_dir.sh data/$x
 done
 
-echo "cp data/train/text data/local/train/text for language model training"
-cat data/$dataset/text | awk '{$1=""}1;' | awk '{$1=$1}1;' >> data/local/train/text
+if ! $skip_lm ; then
+  echo "cp data/train/text data/local/train/text for language model training"
+  cat data/$dataset/text | awk '{$1=""}1;' | awk '{$1=$1}1;' > data/local/train/text_vol2
+  cat data/local/train/text data/local/train/text_vol2 > data/local/train/text_vol1_2
+fi
 
 echo "Data $dataset incorporiate completed."
 

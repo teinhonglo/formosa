@@ -46,21 +46,21 @@ fi
 
 if [ $stage -le 2 ]; then
   steps/align_fmllr.sh --nj $nj --cmd "$train_cmd" \
-    $cleaned_data data/lang_test $srcdir ${srcdir}_ali_${cleanup_affix}
+    $cleaned_data data/lang $srcdir ${srcdir}_ali_${cleanup_affix}
 fi
 
 if [ $stage -le 3 ]; then
-  steps/train_sat.sh --cmd "$train_cmd" --stage 30 \
-    3000 100000 $cleaned_data data/lang_test ${srcdir}_ali_${cleanup_affix} ${cleaned_dir}
+  steps/train_sat.sh --cmd "$train_cmd" \
+    3000 100000 $cleaned_data data/lang ${srcdir}_ali_${cleanup_affix} ${cleaned_dir}
 fi
 
 if [ $stage -le 4 ]; then
   # Test with the models trained on cleaned-up data.
-  utils/mkgraph.sh data/lang_test ${cleaned_dir} ${cleaned_dir}/graph
+  utils/mkgraph.sh data/lang_12_test ${cleaned_dir} ${cleaned_dir}/graph_12
 
   for dset in test; do
     steps/decode_fmllr.sh --nj $decode_nj --num-threads $decode_num_threads \
        --cmd "$decode_cmd"  --num-threads 5 \
-       ${cleaned_dir}/graph data/${dset} ${cleaned_dir}/decode_${dset}
+       ${cleaned_dir}/graph_12 data/${dset} ${cleaned_dir}/decode_${dset}_12
   done
 fi
