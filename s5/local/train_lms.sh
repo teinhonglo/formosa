@@ -6,6 +6,7 @@
 
 text=data/local/train/text
 lexicon=data/local/dict/lexicon.txt
+dir=data/local/lm
 
 for f in "$text" "$lexicon"; do
   [ ! -f $x ] && echo "$0: No such file $f" && exit 1;
@@ -16,7 +17,6 @@ done
 # It takes as input the files
 # data/local/train/text
 # data/local/dict/lexicon.txt
-dir=data/local/lm
 mkdir -p $dir
 
 kaldi_lm=`which train_lm.sh`
