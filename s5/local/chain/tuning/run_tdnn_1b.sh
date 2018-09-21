@@ -4,16 +4,17 @@
 
 set -e
 exp_root=exp
-nnet3_affix=aug
+nnet3_affix=_aug
 
 # configs for 'chain'
-affix=
+affix=_sp_aug
 stage=0
 train_stage=-10
 get_egs_stage=-10
-dir=exp/chain/tdnn_1b_sp_cleaned  # Note: _sp will get added to this
+train_set=train_vol1_2_cleaned
+dir=exp/chain/tdnn_1b  # Note: _sp will get added to this
 decode_iter=
-gmm=tri6a
+gmm=tri6a_cleaned
 # training options
 num_epochs=4
 initial_effective_lrate=0.001
@@ -48,23 +49,23 @@ fi
 # nnet3 setup, and you can skip them by setting "--stage 8" if you have already
 # run those things.
 dir=$dir${affix}
-train_set=data/train_vol1_2_cleaned_sp_hires
-lores_train_set=data/train_vol1_2_cleaned_sp
-online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivector_${train_set}
-ali_dir=$exp_root/${gmm}_cleaned_sp_ali
+train_set_dir=data/${train_set}_sp_hires
+lores_train_set=data/${train_set}_sp
+online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivectors_${train_set}_sp
+ali_dir=$exp_root/${gmm}_sp_ali
 treedir=$exp_root/chain/${gmm}_7d_tree_sp
-lat_dir=$exp_root/${gmm}_cleaned_sp_lats
+lat_dir=$exp_root/${gmm}_sp_lats
 lang=data/lang_chain
-gmm_dir=$exp_root/${gmm}_cleaned
+gmm_dir=$exp_root/${gmm}
 
 
 # if we are using the speed-perturbed data we need to generate
 # alignments for it.
 local/nnet3/run_ivector_common.sh --stage $stage \
                                   --nj $nj \
-                                  --train-set train_vol1_2_cleaned \
-                                  --gmm $gmm_dir
-                                  --nnet3-aifx $nnet3_affix || exit 1;
+                                  --train-set $train_set \
+                                  --gmm $gmm \
+                                  --nnet3-affix $nnet3_affix || exit 1;
 
 if [ $stage -le 7 ]; then
   # Get the alignments as lattices (gives the LF-MMI training more freedom).
@@ -116,6 +117,7 @@ if [ $stage -le 10 ]; then
   # as the layer immediately preceding the fixed-affine-layer to enable
   # the use of short notation for the descriptor
   fixed-affine-layer name=lda input=Append(-1,0,1,ReplaceIndex(ivector, t, 0)) affine-transform-file=$dir/configs/lda.mat
+
   # the first splicing is moved before the lda layer, so no splicing here
   relu-batchnorm-dropout-layer name=tdnn1 $affine_opts dim=1536
   tdnnf-layer name=tdnnf2 $tdnnf_opts dim=1536 bottleneck-dim=160 time-stride=1
@@ -174,7 +176,7 @@ if [ $stage -le 11 ]; then
     --trainer.dropout-schedule $dropout_schedule \
     --trainer.add-option="--optimization.memory-compression-level=2" \
     --cleanup.remove-egs $remove_egs \
-    --feat-dir $train_set \
+    --feat-dir $train_set_dir \
     --tree-dir $treedir \
     --lat-dir $lat_dir \
     --dir $dir  || exit 1;

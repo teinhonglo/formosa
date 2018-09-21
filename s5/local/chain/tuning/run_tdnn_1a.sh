@@ -50,7 +50,7 @@ fi
 # run those things.
 dir=$dir${affix}
 train_set_dir=data/${train_set}_sp_hires
-lores_train_set=data/${train_set}_cleaned_sp
+lores_train_set=data/${train_set}_sp
 online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivectors_${train_set}_sp
 ali_dir=$exp_root/${gmm}_sp_ali
 treedir=$exp_root/chain/${gmm}_7d_tree_sp
