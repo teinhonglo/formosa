@@ -4,7 +4,7 @@
 
 set -e
 exp_root=exp
-nnet3_affix=aug
+nnet3_affix=_aug
 
 # configs for 'chain'
 affix=_aug
@@ -13,7 +13,7 @@ train_stage=-10
 get_egs_stage=-10
 dir=exp/chain/tdnn_1a_sp_cleaned  # Note: _sp will get added to this
 decode_iter=
-gmm=tri6a
+gmm=tri6a_cleaned
 # training options
 num_epochs=4
 initial_effective_lrate=0.001
@@ -51,11 +51,11 @@ dir=$dir${affix}
 train_set=data/train_vol1_2_cleaned_sp_hires
 lores_train_set=data/train_vol1_2_cleaned_sp
 online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivector_${train_set}
-ali_dir=$exp_root/${gmm}_cleaned_sp_ali
+ali_dir=$exp_root/${gmm}_sp_ali
 treedir=$exp_root/chain/${gmm}_7d_tree_sp
-lat_dir=$exp_root/${gmm}_cleaned_sp_lats
+lat_dir=$exp_root/${gmm}_sp_lats
 lang=data/lang_chain
-gmm_dir=$exp_root/${gmm}_cleaned
+gmm_dir=$exp_root/${gmm}
 
 
 # if we are using the speed-perturbed data we need to generate
@@ -63,8 +63,8 @@ gmm_dir=$exp_root/${gmm}_cleaned
 local/nnet3/run_ivector_common.sh --stage $stage \
                                   --nj $nj \
                                   --train-set train_vol1_2_cleaned \
-                                  --gmm $gmm_dir
-                                  --nnet3-aifx $nnet3_affix || exit 1;
+                                  --gmm $gmm \
+                                  --nnet3-affix $nnet3_affix || exit 1;
 
 if [ $stage -le 7 ]; then
   # Get the alignments as lattices (gives the LF-MMI training more freedom).
