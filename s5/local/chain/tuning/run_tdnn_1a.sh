@@ -7,11 +7,12 @@ exp_root=exp
 nnet3_affix=_aug
 
 # configs for 'chain'
-affix=_aug
+affix=_sp_aug
 stage=0
 train_stage=-10
 get_egs_stage=-10
-dir=exp/chain/tdnn_1a_sp_cleaned  # Note: _sp will get added to this
+train_set=train_vol1_2_cleaned
+dir=exp/chain/tdnn_1a  # Note: _sp will get added to this
 decode_iter=
 gmm=tri6a_cleaned
 # training options
@@ -48,9 +49,9 @@ fi
 # nnet3 setup, and you can skip them by setting "--stage 8" if you have already
 # run those things.
 dir=$dir${affix}
-train_set=data/train_vol1_2_cleaned_sp_hires
-lores_train_set=data/train_vol1_2_cleaned_sp
-online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivector_${train_set}
+train_set_dir=data/${train_set}_sp_hires
+lores_train_set=data/${train_set}_cleaned_sp
+online_ivector_dir=$exp_root/nnet3${nnet3_affix}/ivectors_${train_set}_sp
 ali_dir=$exp_root/${gmm}_sp_ali
 treedir=$exp_root/chain/${gmm}_7d_tree_sp
 lat_dir=$exp_root/${gmm}_sp_lats
@@ -62,7 +63,7 @@ gmm_dir=$exp_root/${gmm}
 # alignments for it.
 local/nnet3/run_ivector_common.sh --stage $stage \
                                   --nj $nj \
-                                  --train-set train_vol1_2_cleaned \
+                                  --train-set $train_set \
                                   --gmm $gmm \
                                   --nnet3-affix $nnet3_affix || exit 1;
 
@@ -168,7 +169,7 @@ if [ $stage -le 11 ]; then
     --trainer.optimization.final-effective-lrate $final_effective_lrate \
     --trainer.max-param-change $max_param_change \
     --cleanup.remove-egs $remove_egs \
-    --feat-dir $train_set \
+    --feat-dir $train_set_dir \
     --tree-dir $treedir \
     --lat-dir $lat_dir \
     --dir $dir  || exit 1;
