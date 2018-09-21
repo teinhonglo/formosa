@@ -1,1 +1,0 @@
-/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Eval/Clean/Wav/WJ/20170106/WJ_20170106_009.wav

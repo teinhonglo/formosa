@@ -1,1 +1,0 @@
-/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Eval/Other/Wav/TD/20180103/TD_20180103_041.wav
