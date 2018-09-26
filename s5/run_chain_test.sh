@@ -19,6 +19,7 @@ nnet3_affix=
 graph_affix=12
 data_dir=/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Eval
 data_root=data/online
+ivectors_dir=exp/nnet3
 online_scoring=true
 use_text=false
 
@@ -61,8 +62,8 @@ fi
 
 if [ $stage -le 2 ]; then
   steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj $nj \
-    $data_root/${test_set}_hires_nopitch exp/nnet3/extractor \
-    exp/nnet3/ivectors_${test_set}
+    $data_root/${test_set}_hires_nopitch $ivectors_dir/extractor \
+     $ivectors_dir/ivectors_${test_set}
 fi
 
 if [ $stage -le 3 ]; then
@@ -72,7 +73,7 @@ fi
 if [ $stage -le 4 ]; then
   steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
       --nj $nj --cmd "$decode_cmd" --skip-scoring $online_scoring \
-      --online-ivector-dir exp/nnet3/ivectors_$test_set \
+      --online-ivector-dir $ivectors_dir/ivectors_$test_set \
       $dir/graph_$graph_affix $data_root/${test_set}_hires $dir/decode_${graph_affix}_${test_set} || exit 1;
   
   if $online_scoring; then
