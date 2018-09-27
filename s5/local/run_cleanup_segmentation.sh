@@ -51,7 +51,7 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-  steps/train_sat.sh --cmd "$train_cmd --num-threads 5" \
+  steps/train_sat.sh --cmd "$train_cmd --num-threads 5" --stage 4 \
     3000 100000 $cleaned_data data/lang ${srcdir}_ali_${cleanup_affix} ${cleaned_dir}
 fi
 
