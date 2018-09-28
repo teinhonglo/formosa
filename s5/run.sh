@@ -192,13 +192,13 @@ if [ $stage -le 6 ]; then
   # Data Preparation
   echo "$0: Data Preparation (NER-Trs-Vol2)"
   rdata_root=`dirname $data_dir`
-  local/prepare_data_augmentation.sh $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
+  #local/prepare_data_augmentation.sh --skip-lm false --ntext_affix _2 $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
  
-  local/train_lms_aug.sh --text data/local/train/text_vol1_2 --dir data/local/lm_vol1_2 || exit 1;
+  local/train_lms_aug.sh --text data/local/train/text_2 --dir data/local/lm_2 || exit 1;
 
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
-  utils/format_lm.sh data/lang data/local/lm_vol1_2/3gram-mincount/lm_unpruned.gz \
+  utils/format_lm.sh data/lang data/local/lm_2/3gram-mincount/lm_unpruned.gz \
       data/local/dict/lexicon.txt data/lang_12_test || exit 1;
 
   steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $num_jobs data/train_vol2 
@@ -213,7 +213,6 @@ if [ $stage -le 6 ]; then
 
   steps/align_fmllr.sh --nj $num_jobs --cmd "$train_cmd" \
     data/train_vol1_2 data/lang exp/tri5a exp/tri5b_ali
-
 fi
 
 if [ $stage -le 7 ]; then
@@ -226,22 +225,63 @@ if [ $stage -le 7 ]; then
  
   utils/mkgraph.sh data/lang_12_test exp/tri6a exp/tri6a/graph_12 || exit 1; 
   # decode tri5
-  steps/decode_fmllr.sh --stage 1 --cmd "$decode_cmd --num-threads 5" --num-threads 6 --nj $num_jobs --config conf/decode.config \
+  steps/decode_fmllr.sh --cmd "$decode_cmd --num-threads 5" --num-threads 6 --nj $num_jobs --config conf/decode.config \
        exp/tri6a/graph_12 data/test exp/tri6a/decode_test_12 || exit 1;
 fi
 
 if [ $stage -le 8 ]; then
-  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 3 --data data/train_vol1_2 --srcdir exp/tri6a
+  # Data Preparation
+  echo "$0: Data Preparation (NER-Trs-Vol3)"
+  rdata_root=`dirname $data_dir`
+  local/prepare_data_augmentation.sh --skip-lm false --otext-affix _2 --ntext-affix _3 $rdata_root/NER-Trs-Vol3 train_vol3 || exit 1;
+ 
+  local/train_lms_aug.sh --text data/local/train/text_2_3 --dir data/local/lm_2_3 || exit 1;
+
+  # G compilation, check LG composition
+  echo "$0: G compilation, check LG composition"
+  utils/format_lm.sh data/lang data/local/lm_2_3/3gram-mincount/lm_unpruned.gz \
+      data/local/dict/lexicon.txt data/lang_13_test || exit 1;
+
+  steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $num_jobs data/train_vol3
+  steps/compute_cmvn_stats.sh data/train_vol3
+  utils/fix_data_dir.sh data/train_vol3
+
+  # combine all the data
+  utils/combine_data.sh \
+   data/train_vol1_2_3 data/train_vol1_2 data/train_vol3
+  
+  utils/fix_data_dir.sh data/train_vol1_2_3
+
+  steps/align_fmllr.sh --nj $num_jobs --cmd "$train_cmd --num-threads 5" \
+    data/train_vol1_2_3 data/lang exp/tri6a exp/tri6b_ali
+fi
+
+if [ $stage -le 9 ]; then
+
+  steps/train_sat.sh --stage 4 --cmd "$train_cmd --num-threads 5" \
+    3500 100000 data/train_vol1_2_3 data/lang exp/tri6b_ali exp/tri7a || exit 1;
+  
+  steps/align_fmllr.sh --nj $num_jobs --cmd "$train_cmd --num-threads 5" \
+    data/train_vol1_2_3 data/lang exp/tri7a exp/tri7a_ali || exit 1;
+ 
+  utils/mkgraph.sh data/lang_13_test exp/tri7a exp/tri7a/graph_13 || exit 1; 
+  # decode tri5
+  steps/decode_fmllr.sh --cmd "$decode_cmd --num-threads 5" --num-threads 2 --nj $num_jobs --config conf/decode.config \
+       exp/tri7a/graph_13 data/test exp/tri7a/decode_test_13 || exit 1;
+fi
+
+if [ $stage -le 10 ]; then
+  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 0 --data data/train_vol1_2_3 --srcdir exp/tri7a --graph-affix _13
 fi
 
 # chain model
-if [ $stage -le 9 ]; then
+if [ $stage -le 11 ]; then
   echo "$0: train chain model"
-  local/chain/run_tdnn.sh --stage $train_stage --affix _aug
+  local/chain/run_tdnn.sh --stage $train_stage --train-set data/train_vol1_2_3_cleaned --gmm exp/tri7a_cleaned --nnet3-affix _aug3 --affix _aug3
 fi
 
 # getting results (see RESULTS file)
-if [ $stage -le 10 ]; then
+if [ $stage -le 12 ]; then
 
   echo "$0: extract the results"
   for x in exp/*/decode_test; do [ -d $x ] && grep WER $x/cer_* | utils/best_wer.sh; done 2>/dev/null
@@ -253,4 +293,5 @@ fi
 echo "$0: all done"
 
 exit 0;
+
 
