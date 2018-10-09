@@ -18,7 +18,7 @@ function filter_text {
 
 for datadir in matbn_dev matbn_eval; do
   filter_text <$data_root/$datadir/text > $data_root/$datadir/text.filt
-  python local/extract_misporns.py $data_root/$datadir/text.filt > $data_root/$datadir/text.filt.clean
+  python local/extract_misprons.py $data_root/$datadir/text.filt > $data_root/$datadir/text.filt.clean
   awk '{print $1}' $data_root/$datadir/text.filt.clean > $data_root/$datadir/uttlist
   utils/data/subset_data_dir.sh --utt-list $data_root/$datadir/uttlist $data_root/$datadir $data_root/${datadir}_cleanup
   cp $data_root/$datadir/text.filt.clean $data_root/${datadir}_cleanup/text
