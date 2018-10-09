@@ -271,13 +271,13 @@ if [ $stage -le 9 ]; then
 fi
 
 if [ $stage -le 10 ]; then
-  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 0 --data data/train_vol1_2_3 --srcdir exp/tri7a --graph-affix _13
+  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 4 --data data/train_vol1_2_3 --srcdir exp/tri7a --graph-affix _13
 fi
 
 # chain model
 if [ $stage -le 11 ]; then
   echo "$0: train chain model"
-  local/chain/run_tdnn.sh --stage $train_stage --train-set data/train_vol1_2_3_cleaned --gmm exp/tri7a_cleaned --nnet3-affix _aug3 --affix _aug3
+  local/chain/run_tdnn.sh --stage $train_stage --train-set train_vol1_2_3_cleaned --gmm tri7a_cleaned --nnet3-affix _aug3 --affix _aug3
 fi
 
 # getting results (see RESULTS file)
@@ -293,5 +293,6 @@ fi
 echo "$0: all done"
 
 exit 0;
+
 
 
