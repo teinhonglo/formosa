@@ -6,7 +6,7 @@ import re
 fname = sys.argv[1]
 with open(fname) as f:
     for line in f.readlines():
-        content_cleanup = re.sub(r'\+\|[A-Za-z0-9]+\||\n|\[.+\]', '', line)
+        content_cleanup = re.sub(r'\+\|[A-Za-z0-9．.!]+\||\n|\[.+\]?', '', line)
         if not (content_cleanup[-5:-1] == ".wav"):
             print content_cleanup
 '''
