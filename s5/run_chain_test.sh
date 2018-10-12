@@ -61,7 +61,7 @@ if [ $stage -le 1 ]; then
 fi
 
 if [ $stage -le 2 ]; then
-  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd --num-threads 5" --nj $nj \
+  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj $nj \
     $data_root/${test_set}_hires_nopitch $ivectors_dir/extractor \
      $ivectors_dir/ivectors_${test_set}
 fi
@@ -72,7 +72,7 @@ fi
 
 if [ $stage -le 4 ]; then
   steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
-      --nj $nj --cmd "$decode_cmd" --num-threads 5 --skip-scoring $online_scoring \
+      --nj $nj --cmd "$decode_cmd" --skip-scoring $online_scoring \
       --online-ivector-dir $ivectors_dir/ivectors_$test_set \
       $dir/graph$graph_affix $data_root/${test_set}_hires $dir/decode${graph_affix}_${test_set} || exit 1;
   
@@ -80,7 +80,7 @@ if [ $stage -le 4 ]; then
     [ ! -x local/score_online.sh ] && \
       echo "Not scoring because local/score.sh does not exist or not executable." && exit 1;
     echo "score best paths"
-    local/score_online.sh --cmd "$decode_cmd" $data_root/${test_set} $dir/graph$graph_affix $dir/decode_${graph_affix}_${test_set}
+    local/score_online.sh --cmd "$decode_cmd" $data_root/${test_set} $dir/graph$graph_affix $dir/decode${graph_affix}_${test_set}
     echo "score confidence and timing with sclite"
   fi
 fi
