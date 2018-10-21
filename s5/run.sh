@@ -40,7 +40,11 @@ if [ $stage -le -2 ]; then
   # LM training
   echo "$0: LM training"
   rm -rf data/local/lm/3gram-mincount
-  local/train_lms.sh || exit 1;
+
+  local/train_lms.sh \
+    data/local/train/text \ 
+    data/local/dict/lexicon.txt \
+    data/local/lm || exit 1;
 
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
@@ -192,9 +196,13 @@ if [ $stage -le 6 ]; then
   # Data Preparation
   echo "$0: Data Preparation (NER-Trs-Vol2)"
   rdata_root=`dirname $data_dir`
-  #local/prepare_data_augmentation.sh --skip-lm false --ntext_affix _2 $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
+  local/prepare_data_augmentation.sh --skip-lm false --ntext_affix _2 $rdata_root/NER-Trs-Vol2 train_vol2 || exit 1;
  
-  local/train_lms_aug.sh --text data/local/train/text_2 --dir data/local/lm_2 || exit 1;
+  #local/train_lms_aug.sh --text data/local/train/text_2 --dir data/local/lm_2 || exit 1;
+  local/train_lms.sh \
+    data/local/train/text_2 \ 
+    data/local/dict/lexicon.txt \
+    data/local/lm_2 || exit 1;
 
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
@@ -235,8 +243,11 @@ if [ $stage -le 8 ]; then
   rdata_root=`dirname $data_dir`
   local/prepare_data_augmentation.sh --skip-lm false --otext-affix _2 --ntext-affix _3 $rdata_root/NER-Trs-Vol3 train_vol3 || exit 1;
  
-  local/train_lms_aug.sh --text data/local/train/text_2_3 --dir data/local/lm_2_3 || exit 1;
-
+  #local/train_lms_aug.sh --text data/local/train/text_2_3 --dir data/local/lm_2_3 || exit 1;
+  local/train_lms.sh \
+    data/local/train/text_2_3 \ 
+    data/local/dict/lexicon.txt \
+    data/local/lm_2_3 || exit 1;
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
   utils/format_lm.sh data/lang data/local/lm_2_3/3gram-mincount/lm_unpruned.gz \
@@ -271,7 +282,7 @@ if [ $stage -le 9 ]; then
 fi
 
 if [ $stage -le 10 ]; then
-  local/run_cleanup_segmentation.sh --nj $num_jobs --stage 4 --data data/train_vol1_2_3 --srcdir exp/tri7a --graph-affix _13
+  local/run_cleanup_segmentation.sh --nj $num_jobs --data data/train_vol1_2_3 --srcdir exp/tri7a --graph-affix _13
 fi
 
 # chain model

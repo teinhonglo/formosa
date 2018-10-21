@@ -4,9 +4,9 @@
 # To be run from one directory above this script.
 . ./path.sh
 
-text=data/local/train/text
-lexicon=data/local/dict/lexicon.txt
-dir=data/local/lm
+text=$1
+lexicon=$2
+dir=$3
 
 for f in "$text" "$lexicon"; do
   [ ! -f $x ] && echo "$0: No such file $f" && exit 1;
