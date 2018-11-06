@@ -1,0 +1,1 @@
+tuning/run_tdnn_librispeech_ami_1a.sh
