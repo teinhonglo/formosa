@@ -12,13 +12,16 @@
 # Dev objf:   -10.76 -4.68 -4.47 -4.38 -4.33 -4.29 -4.28 -4.27 -4.26 -4.26 -4.25 -4.24 -4.24 -4.24 -4.23 -4.23 -4.23 -4.23
 
 # Begin configuration section.
-embedding_dim=1024
-epochs=10
-lstm_rpd=256
-lstm_nrpd=256
-stage=-10
-train_stage=-10
-rnnlm_affix=_swbd
+embedding_dim=800
+embedding_l2=0.001 # embedding layer l2 regularize
+comp_l2=0.001 # component-level l2 regularize
+output_l2=0.001 # output-layer l2 regularize
+epochs=20
+lstm_rpd=200
+lstm_nrpd=200
+stage=0
+train_stage=0
+rnnlm_affix=_wsj
 ac_model_dir=exp/chain/tdnn_1b_aug3
 test_set=eval0
 data_root=data/online
@@ -33,15 +36,15 @@ text=data/train_vol1_2_3b/text
 orig_set=data/train_vol1_2_3b
 wordlist=data/lang/words.txt
 text_dir=data/rnnlm$rnnlm_affix
-dir=exp/rnnlm_lstm_tdnn_1a$rnnlm_affix
+dir=exp/rnnlm_lstm_tdnn_1b$rnnlm_affix
 mkdir -p $dir/config
 set -e
 
 if [ $stage -le 0 ]; then
-  mkdir -p $text_dir
-  echo -n >$text_dir/dev.txt
-  # hold out one in every 500 lines as dev data.
-  cat $text | cut -d ' ' -f2- | awk -v text_dir=$text_dir '{if(NR%50 == 0) { print >text_dir"/dev.txt"; } else {print;}}' >$text_dir/formosa.txt
+   mkdir -p $text_dir
+   echo -n >$text_dir/dev.txt
+   # hold out one in every 500 lines as dev data.
+   cat $text | cut -d ' ' -f1- | awk -v text_dir=$text_dir '{if(NR%50 == 0) { print >text_dir"/dev.txt"; } else {print;}}' >$text_dir/formosa.txt
 fi
 
 if [ $stage -le 1 ]; then
@@ -65,22 +68,27 @@ EOF
   # choose features
   rnnlm/choose_features.py --unigram-probs=$dir/config/unigram_probs.txt \
                            --use-constant-feature=true \
+                           --top-word-features=50000 \
+                           --min-frequency 1.0e-03 \
                            --special-words='<s>,</s>,<brk>,<unk>,<SIL>' \
                            $dir/config/words.txt > $dir/config/features.txt
-
-
+  
   tail -n +3 $dir/config/features.txt > $dir/config/features.txt.new
   cp $dir/config/features.txt $dir/config/features.txt.backup
   mv $dir/config/features.txt.new $dir/config/features.txt
 
+lstm_opts="l2-regularize=$comp_l2"
+tdnn_opts="l2-regularize=$comp_l2"
+output_opts="l2-regularize=$output_l2"
+
   cat >$dir/config/xconfig <<EOF
 input dim=$embedding_dim name=input
-relu-renorm-layer name=tdnn1 dim=$embedding_dim input=Append(0, IfDefined(-1))
-fast-lstmp-layer name=lstm1 cell-dim=$embedding_dim recurrent-projection-dim=$lstm_rpd non-recurrent-projection-dim=$lstm_nrpd
-relu-renorm-layer name=tdnn2 dim=$embedding_dim input=Append(0, IfDefined(-3))
-fast-lstmp-layer name=lstm2 cell-dim=$embedding_dim recurrent-projection-dim=$lstm_rpd non-recurrent-projection-dim=$lstm_nrpd
-relu-renorm-layer name=tdnn3 dim=$embedding_dim input=Append(0, IfDefined(-3))
-output-layer name=output include-log-softmax=false dim=$embedding_dim
+relu-renorm-layer name=tdnn1 dim=$embedding_dim $tdnn_opts input=Append(0, IfDefined(-1)) 
+fast-lstmp-layer name=lstm1 cell-dim=$embedding_dim recurrent-projection-dim=$lstm_rpd non-recurrent-projection-dim=$lstm_nrpd $lstm_opts
+relu-renorm-layer name=tdnn2 dim=$embedding_dim $tdnn_opts input=Append(0, IfDefined(-2))
+fast-lstmp-layer name=lstm2 cell-dim=$embedding_dim recurrent-projection-dim=$lstm_rpd non-recurrent-projection-dim=$lstm_nrpd $lstm_opts
+relu-renorm-layer name=tdnn3 dim=$embedding_dim $tdnn_opts input=Append(0, IfDefined(-1))
+output-layer name=output $output_opts include-log-softmax=false dim=$embedding_dim
 EOF
   rnnlm/validate_config_dir.sh $text_dir $dir/config
 fi
@@ -94,29 +102,34 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-  rnnlm/train_rnnlm.sh --stage $train_stage \
+  rnnlm/train_rnnlm.sh --embedding_l2 $embedding_l2 \
+                       --stage $train_stage \
                        --num-egs-threads 2 \
                        --num-epochs $epochs --cmd "$cmd" $dir
 fi
 
 if [ $stage -le 4 ]; then
-    decode_dir=${ac_model_dir}/decode${graph_affix}_$test_set
-    decode_dir_suffix=_nbest$rnnlm_affix
-    # Lattice rescoring
-    rnnlm/lmrescore_nbest.sh \
-      --cmd "$decode_cmd --mem 4G" \
-      --N 20 --skip-scoring $online_scoring 0.8 \
-      data/lang${graph_affix}_test $dir \
-      $data_root/${test_set}_hires ${decode_dir} \
-      ${decode_dir}$decode_dir_suffix || exit 1
-  
-  if $online_scoring; then
-    [ ! -x local/score_online.sh ] && \
-      echo "Not scoring because local/score.sh does not exist or not executable." && exit 1;
-    echo "score best paths"
-    local/score_online.sh --cmd "$decode_cmd" $data_root/${test_set}_hires $dir/graph$graph_affix ${decode_dir}$decode_dir_suffix || exit 1
-    echo "score confidence and timing with sclite"
-  fi
+    for num_best in `seq 100 50 250`; do
+      for lmwt in 0.4 ; do
+        decode_dir=${ac_model_dir}/decode${graph_affix}_$test_set
+        decode_dir_suffix=_${num_best}nbest${rnnlm_affix}_${lmwt}
+        # Lattice rescoring
+        rnnlm/lmrescore_nbest.sh \
+          --cmd "$decode_cmd --mem 4G" \
+          --N $num_best --skip-scoring $online_scoring $lmwt \
+          data/lang${graph_affix}_test $dir \
+          $data_root/${test_set}_hires ${decode_dir} \
+          ${decode_dir}$decode_dir_suffix 
+      
+        if $online_scoring; then
+          [ ! -x local/score_online.sh ] && \
+            echo "Not scoring because local/score.sh does not exist or not executable." && exit 1;
+            echo "score best paths"
+            local/score_online.sh --cmd "$decode_cmd" $data_root/${test_set}_hires $decode_dir/../graph$graph_affix ${decode_dir}$decode_dir_suffix || exit 1
+          echo "score confidence and timing with sclite"
+        fi
+      done	
+    done
 fi
 
 exit 0

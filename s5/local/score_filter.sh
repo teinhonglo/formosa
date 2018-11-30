@@ -3,7 +3,7 @@
 
 # begin configuration section.
 cmd=run.pl
-data_root=data/matbn
+data_root=data/local
 #end configuration section.
 
 [ -f ./path.sh ] && . ./path.sh

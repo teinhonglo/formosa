@@ -16,10 +16,10 @@ test_set=test
 nj=20
 
 nnet3_affix=
-graph_affix=_12
-data_dir=/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Eval
+graph_affix=
+data_dir=/share/corpus/MATBN_GrandChallenge/NER-Trs-Vol1-Test
 data_root=data/online
-ivectors_dir=exp/nnet3
+ivectors_dir=exp/nnet3_aug3
 online_scoring=true
 use_text=false
 
@@ -27,7 +27,7 @@ use_text=false
 . ./path.sh
 . utils/parse_options.sh
 
-#run_chain_test.sh --stage -1 --data-root data/online --use-text true --online-scoring false eval0 exp/chain/tdnn_1a_sp_cleaned_sp
+#run_chain_test.sh --stage -1 --ivectors-dir exp/nnet3_aug --graph-affix _13b --data-root data/online --use-text true --online-scoring false eval0 exp/chain/tdnn_1b_aug
 #rm local/score.sh
 #ln -s score_online.sh local/score.sh
  
@@ -72,7 +72,7 @@ fi
 
 if [ $stage -le 4 ]; then
   steps/nnet3/decode.sh --acwt 1.0 --post-decode-acwt 10.0 \
-      --nj $nj --cmd "$decode_cmd" --skip-scoring $online_scoring \
+      --nj $nj --cmd "$decode_cmd" --num-threads 2  --skip-scoring $online_scoring \
       --online-ivector-dir $ivectors_dir/ivectors_$test_set \
       $dir/graph$graph_affix $data_root/${test_set}_hires $dir/decode${graph_affix}_${test_set} || exit 1;
   

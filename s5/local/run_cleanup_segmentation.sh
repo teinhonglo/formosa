@@ -51,13 +51,14 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-  steps/train_sat.sh --cmd "$train_cmd --num-threads 5" --stage 4 \
+  steps/train_sat.sh --cmd "$train_cmd" \
     3000 100000 $cleaned_data data/lang ${srcdir}_ali_${cleanup_affix} ${cleaned_dir}
 fi
 
+
 if [ $stage -le 4 ]; then
   # Test with the models trained on cleaned-up data.
-  utils/mkgraph.sh data/lang_12_test ${cleaned_dir} ${cleaned_dir}/graph$graph_affix
+  utils/mkgraph.sh data/lang${graph_affix}_test ${cleaned_dir} ${cleaned_dir}/graph$graph_affix
 
   for dset in test; do
     steps/decode_fmllr.sh --nj $decode_nj --num-threads $decode_num_threads \

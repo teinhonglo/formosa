@@ -18,9 +18,10 @@ nj=20
 
 nnet3_affix=
 
+echo "$0 $@"
 . ./cmd.sh
 . ./path.sh
-. utils/parse_options.sh
+. ./utils/parse_options.sh
 
 gmm_dir=exp/${gmm}
 ali_dir=exp/${gmm}_sp_ali

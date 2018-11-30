@@ -15,7 +15,7 @@ while IFS=: read -r line
 do
     cFile=`echo $line | cut -d " " -f1 | cut -d "/" -f5-`
     cFile=`echo "${cFile/Wav/Text}"`
-    content=`echo $line | cut -d " " -f2`
+    content=`echo $line | cut -d " " -f2-`
 
     fname=`basename $cFile`
     dname=$output_dir/`dirname $cFile`

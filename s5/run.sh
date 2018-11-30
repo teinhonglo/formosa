@@ -241,28 +241,28 @@ if [ $stage -le 8 ]; then
   # Data Preparation
   echo "$0: Data Preparation (NER-Trs-Vol3)"
   rdata_root=`dirname $data_dir`
-  local/prepare_data_augmentation.sh --skip-lm false --otext-affix _2 --ntext-affix _3 $rdata_root/NER-Trs-Vol3 train_vol3 || exit 1;
+  local/prepare_data_augmentation.sh --skip-lm false --otext-affix _2 --ntext-affix _3b $rdata_root/NER-Trs-Vol3 train_vol3b || exit 1;
  
   #local/train_lms_aug.sh --text data/local/train/text_2_3 --dir data/local/lm_2_3 || exit 1;
   local/train_lms.sh \
-    data/local/train/text_2_3 \ 
+    data/local/train/text_2_3b \ 
     data/local/dict/lexicon.txt \
-    data/local/lm_2_3 || exit 1;
+    data/local/lm_3b || exit 1;
   # G compilation, check LG composition
   echo "$0: G compilation, check LG composition"
-  utils/format_lm.sh data/lang data/local/lm_2_3/3gram-mincount/lm_unpruned.gz \
-      data/local/dict/lexicon.txt data/lang_13_test || exit 1;
+  utils/format_lm.sh data/lang data/local/lm_3b/3gram-mincount/lm_unpruned.gz \
+      data/local/dict/lexicon.txt data/lang_13b_test || exit 1;
 
-  steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $num_jobs data/train_vol3
-  steps/compute_cmvn_stats.sh data/train_vol3
-  utils/fix_data_dir.sh data/train_vol3
+  steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj $num_jobs data/train_vol3b
+  steps/compute_cmvn_stats.sh data/train_vol3b
+  utils/fix_data_dir.sh data/train_vol3b
 
   # combine all the data
   utils/combine_data.sh \
-   data/train_vol1_2_3 data/train_vol1_2 data/train_vol3
+   data/train_vol1_2_3b data/train_vol1_2 data/train_vol3b
   
-  utils/fix_data_dir.sh data/train_vol1_2_3
-
+  utils/fix_data_dir.sh data/train_vol1_2_3b
+  exit 0;
   steps/align_fmllr.sh --nj $num_jobs --cmd "$train_cmd --num-threads 5" \
     data/train_vol1_2_3 data/lang exp/tri6a exp/tri6b_ali
 fi
@@ -288,7 +288,7 @@ fi
 # chain model
 if [ $stage -le 11 ]; then
   echo "$0: train chain model"
-  local/chain/run_tdnn.sh --stage $train_stage --train-set train_vol1_2_3_cleaned --gmm tri7a_cleaned --nnet3-affix _aug3 --affix _aug3
+  local/chain/run_cnn_tdnn.sh --stage $train_stage --train-set train_vol1_2_3_cleaned --gmm tri7a_cleaned --nnet3-affix _aug3 --affix _aug3
 fi
 
 # getting results (see RESULTS file)
