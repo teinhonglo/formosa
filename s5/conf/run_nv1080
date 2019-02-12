@@ -5,6 +5,6 @@ option mem=0          # Do not add anything to qsub_opts
 option num_threads=* -pe smp $0
 option num_threads=1  # Do not add anything to qsub_opts
 option max_jobs_run=* -tc $0
-default gpu=0 #-q all.q@JH87 -q all.q@kl28 -q all.q@kl03
+default gpu=0 #-q all.q@JH87 -q all.q@titan -q all.q@kl03
 option gpu=0
-option gpu=* -l gpu=$0 #-q all.q@JH87 -q all.q@kl28 -q all.q@kl03
+option gpu=* -l gpu=$0 #-q all.q@JH87 -q all.q@titan -q all.q@kl03

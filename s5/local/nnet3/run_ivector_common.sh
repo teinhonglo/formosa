@@ -18,10 +18,9 @@ nj=20
 
 nnet3_affix=
 
-echo "$0 $@"
 . ./cmd.sh
 . ./path.sh
-. ./utils/parse_options.sh
+. utils/parse_options.sh
 
 gmm_dir=exp/${gmm}
 ali_dir=exp/${gmm}_sp_ali
@@ -46,7 +45,7 @@ fi
 
 if [ $stage -le 2 ]; then
   echo "$0: aligning with the perturbed low-resolution data"
-  steps/align_fmllr.sh --nj $nj --cmd "$train_cmd --num-threads 5" \
+  steps/align_fmllr.sh --nj 30 --cmd "$train_cmd" \
     data/${train_set}_sp data/lang $gmm_dir $ali_dir || exit 1
 fi
 
@@ -58,7 +57,7 @@ if [ $stage -le 3 ]; then
   if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d $mfccdir/storage ]; then
     utils/create_split_dir.pl /export/b0{5,6,7,8}/$USER/kaldi-data/mfcc/aishell-$(date +'%m_%d_%H_%M')/s5/$mfccdir/storage $mfccdir/storage
   fi
-  
+
   for datadir in ${train_set}_sp ${test_sets}; do
     utils/copy_data_dir.sh data/$datadir data/${datadir}_hires
   done
@@ -135,14 +134,14 @@ if [ $stage -le 6 ]; then
   temp_data_root=${ivectordir}
   utils/data/modify_speaker_info.sh --utts-per-spk-max 2 \
     data/${train_set}_sp_hires_nopitch ${temp_data_root}/${train_set}_sp_hires_nopitch_max2
-  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd --num-threads 3" --nj 30 \
+  steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj 30 \
     ${temp_data_root}/${train_set}_sp_hires_nopitch_max2 \
     exp/nnet3${nnet3_affix}/extractor $ivectordir
 
   # Also extract iVectors for the test data, but in this case we don't need the speed
   # perturbation (sp).
   for data in $test_sets; do
-    steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd --num-threads 3" --nj 8 \
+    steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj 8 \
       data/${data}_hires_nopitch exp/nnet3${nnet3_affix}/extractor \
       exp/nnet3${nnet3_affix}/ivectors_${data}
   done

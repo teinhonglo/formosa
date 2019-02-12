@@ -145,11 +145,11 @@ GSYMS
 /kaldiwin_vs*
 
 # exp
-/s5/exp/*/*
-/s5/exp/*
-/s5/exp*/*/*
+/s*/exp/*/*
+/s*/exp/*
+/s*/exp*/*/*
 
 # data
-/s5/data/*/*
-/s5/data/*
-/s5/Submission
+/s*/data/*/*
+/s*/data/*
+/s*/Submision
