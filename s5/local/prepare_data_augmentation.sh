@@ -6,6 +6,8 @@
 set -euo pipefail
 
 skip_lm=false
+otext_affix=
+ntext_affix=
 
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
@@ -47,8 +49,9 @@ done
 
 if ! $skip_lm ; then
   echo "cp data/train/text data/local/train/text for language model training"
-  cat data/$dataset/text | awk '{$1=""}1;' | awk '{$1=$1}1;' > data/local/train/text_vol2
-  cat data/local/train/text data/local/train/text_vol2 > data/local/train/text_vol1_2
+  cat data/$dataset/text | awk '{$1=""}1;' | awk '{$1=$1}1;' > data/local/train/text${ntext_affix}.tmp
+  cat data/local/train/text$otext_affix data/local/train/text${ntext_affix}.tmp > data/local/train/text${otext_affix}${ntext_affix}
+  rm data/local/train/text${ntext_affix}.tmp
 fi
 
 echo "Data $dataset incorporiate completed."

@@ -8,6 +8,8 @@ data_root=data/online
 dataset=eval0
 use_text=false
 
+echo "$0 $@"
+
 . ./cmd.sh
 . ./utils/parse_options.sh
 
@@ -37,8 +39,10 @@ touch $cur_data_root/wav.scp
 find $corpus -name *.wav -exec sh -c 'x={}; y=${x%.wav}; printf "%s %s\n"     $y $y' \; | dos2unix > $cur_data_root/utt2spk
 find $corpus -name *.wav -exec sh -c 'x={}; y=${x%.wav}; printf "%s %s\n"     $y $x' \; | dos2unix > $cur_data_root/wav.scp
 
+cat $cur_data_root/utt2spk > $cur_data_root/spk2utt
+
 if $use_text; then
-  find $corpus -name *.txt -exec sh -c 'x={}; y=${x%.txt}; printf "%s " $y; cat $x'    \; | dos2unix | sed 's/\/Text\//\/Wav\//' > $cur_data_root/text
+  find $corpus -name "*.txt" -exec sh -c 'x={}; y=${x%.txt}; printf "%s " $y; cat $x'    \; | dos2unix | sed 's/\/Text\//\/Wav\//' > $cur_data_root/text
 fi
 
 utils/fix_data_dir.sh $cur_data_root
